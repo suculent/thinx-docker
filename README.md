@@ -1,4 +1,4 @@
-# Initial installation procedure for thinx.cloud
+# Initial installation procedure for [THiNX OpenSource IoT management platform](https://thinx.cloud)
 
 ## Setup Firebase Notifications
 
