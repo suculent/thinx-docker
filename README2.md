@@ -1,108 +1,25 @@
-# Installing platform builders
+# 2. Installing platform builders
 
+Because this operation takes a while and will hardly fail, it's separated to the Second Stage of Installation.
+
+## Installing Platform Builders
+
+Enter the container with bash:
+
+```
+docker run -ti -e THINX_HOSTNAME='staging.thinx.cloud' -e THINX_OWNER='suculent@me.com' suculent/thinx-docker /bin/bash
+
+```
+
+Fetch required builder images from Docker Hub:
+
+```
+bash ./install-builders.sh
+```
+
+
+## TODOs and Notes
 Everything should be dockerized. Docker should be run as builder. Params should be packed to JSON before running from shared folder.
-
-### PIP & PlatformIO (will be moved to 2nd stage - Dockerized Builders)
-
-    sudo apt-get install python3.6
-    python -c "$(curl -fsSL https://raw.githubusercontent.com/platformio/platformio/master/scripts/get-platformio.py)"
-
-You can test the builder with:
-
-    ./build.sh --tenant=test --mac=ANY --git=https://github.com/suculent/thinx-firmware-esp8266 --dry-run
-
-Sample log output:
-
-    -=[ THiNX PLATFORMIO BUILDER ]=-
-
-    Cleaning workspace...
-    Cloning into 'thinx-firmware-esp8266'...
-    remote: Counting objects: 14, done.
-    remote: Compressing objects: 100% (9/9), done.
-    remote: Total 14 (delta 4), reused 14 (delta 4), pack-reused 0
-    Unpacking objects: 100% (14/14), done.
-    Fetched commit ID: 18ee75e3a56c07a9eff08f75df69ef96f919653f
-    
-    Build step...
-    [Mon Apr 10 19:25:31 2017] Processing d1_mini (platform: espressif8266, board: d1_mini, framework: arduino)
-    ---------------------------------------------------------------------------------------------------
-    Verbose mode can be enabled via `-v, --verbose` option
-    Converting thinx-firmware-esp8266.ino
-    Collected 49 compatible libraries
-    Looking for dependencies...
-    Library Dependency Graph
-    |-- <ESP8266httpUpdate> v1.1
-    |   |-- <ESP8266HTTPClient> v1.1
-    |   |   |-- <ESP8266WiFi> v1.0
-    |   |-- <ESP8266WiFi> v1.0
-    Compiling .pioenvs/d1_mini/src/thinx-firmware-esp8266.ino.o
-    Linking .pioenvs/d1_mini/firmware.elf
-    Calculating size .pioenvs/d1_mini/firmware.elf
-    text	   data	    bss	    dec	    hex	filename
-    237497	   3256	  29672	 270425	  42059	.pioenvs/d1_mini/firmware.elf
-    =================================== [SUCCESS] Took 7.42 seconds ===================================
-    
-    Deploying 18ee75e3a56c07a9eff08f75df69ef96f919653f.bin to /var/www/html/bin/test...
-
-
-# TEST Re-build
-
-#cd /root/Documents/Arduino/sketches/test/thinx-firmware-esp8266
-#git pull origin master
-#platformio run
-#cp .pioenvs/d1_mini/firmware.elf /var/www/html/bin/test
-
-
-
-### ESP8266
-
-    mkdir -p ~/Documents/Arduino/hardware
-    mkdir esp8266com
-    cd esp8266com
-    git clone https://github.com/esp8266/Arduino.git esp8266
-    cd esp8266/tools
-    python get.py
-    
-    ## Platformio Builder
-
-You can test the builder with:
-
-    ./build.sh --tenant=test --mac=ANY --git=https://github.com/suculent/thinx-firmware-esp8266 --dry-run
-
-Sample log output:
-
-    -=[ THiNX PLATFORMIO BUILDER ]=-
-
-    Cleaning workspace...
-    Cloning into 'thinx-firmware-esp8266'...
-    remote: Counting objects: 14, done.
-    remote: Compressing objects: 100% (9/9), done.
-    remote: Total 14 (delta 4), reused 14 (delta 4), pack-reused 0
-    Unpacking objects: 100% (14/14), done.
-    Fetched commit ID: 18ee75e3a56c07a9eff08f75df69ef96f919653f
-    
-    Build step...
-    [Mon Apr 10 19:25:31 2017] Processing d1_mini (platform: espressif8266, board: d1_mini, framework: arduino)
-    ---------------------------------------------------------------------------------------------------
-    Verbose mode can be enabled via `-v, --verbose` option
-    Converting thinx-firmware-esp8266.ino
-    Collected 49 compatible libraries
-    Looking for dependencies...
-    Library Dependency Graph
-    |-- <ESP8266httpUpdate> v1.1
-    |   |-- <ESP8266HTTPClient> v1.1
-    |   |   |-- <ESP8266WiFi> v1.0
-    |   |-- <ESP8266WiFi> v1.0
-    Compiling .pioenvs/d1_mini/src/thinx-firmware-esp8266.ino.o
-    Linking .pioenvs/d1_mini/firmware.elf
-    Calculating size .pioenvs/d1_mini/firmware.elf
-    text	   data	    bss	    dec	    hex	filename
-    237497	   3256	  29672	 270425	  42059	.pioenvs/d1_mini/firmware.elf
-    =================================== [SUCCESS] Took 7.42 seconds ===================================
-    
-    Deploying 18ee75e3a56c07a9eff08f75df69ef96f919653f.bin to /var/www/html/bin/test...
-    
-# Micropython setup
 
 
 # NodeMCU Custom Firmware Builder
@@ -254,24 +171,3 @@ WS2812
 XPT2046 
 
 
-# Mongoose OS builder
-
-
-[Docs](https://github.com/cesanta/mongoose-os/blob/master/docs/apps/build.md)
-
-Install MongooseOS bundle:
-        
-    curl -fsSL https://mongoose-os.com/downloads/mos/install.sh | /bin/bash    
-
-
-Build custom instance:
-
-    mos update
-
-    cd ~/tools/mos # (or current user's build folder
-
-    ~/.mos/bin/mos init --verbose
-
-    mos build --verbose
-    
-    # TODO: Fetch custom user data

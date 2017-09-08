@@ -52,6 +52,8 @@ RUN apt-get update && apt-get -y install software-properties-common apt-utils \
  nginx \
  postfix \
  pwgen \
+ python-dev \
+ python \
  redis-server \
  wget \
  unzip
@@ -81,6 +83,23 @@ RUN apt-get install -y --force-yes \
      sed -e 's/^view_index_dir = .*$/view_index_dir = \/data/' -i /usr/local/etc/couchdb/default.ini && \
      apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
+RUN cat > $(couchdb -c | grep "local.ini") <<EOL
+[cors]
+credentials = true
+
+[compactions]
+_default = [{db_fragmentation, "70%"}, {view_fragmentation, "60%"}]
+;_default = [{db_fragmentation, "70%"}, {view_fragmentation, "60%"}, {from, "23:00"}, {to, "04:00"}]
+
+[compaction_daemon]
+check_interval = 300
+min_file_size = 131072
+
+[view_compaction]
+keyvalue_buffer_size = 2097152
+EOL
+
+
 # Recently added corrent installation of nodejs 8.x
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
  && apt-get install -y nodejs \
@@ -94,6 +113,10 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
  && node -v \
  && npm install .
 
+RUN apt-get install cppcheck
+RUN npm install eslint
+RUN pip install pylama
+
 ADD scripts /scripts
 RUN chmod +x /scripts/*.sh
 RUN touch /.firstrun
@@ -103,7 +126,6 @@ COPY ./conf/*.json /root/thinx-device-api/conf/
 
 # Default Redis configuration
 COPY ./conf/redis.conf /etc/redis/redis.conf
-
 
 # MQTT
 EXPOSE 1883
