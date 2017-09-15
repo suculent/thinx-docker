@@ -29,7 +29,7 @@ ENV THINX_HOSTNAME staging.thinx.cloud
 ENV THINX_OWNER_EMAIL suculent@me.com
 
 RUN echo Installing as hostname: ${THINX_HOSTNAME} && echo With Letsencrypt owner: ${THINX_OWNER_EMAIL} && export THINX_HOSTNAME=staging.thinx.cloud \
- && apt-get update && apt-get install -y letsencrypt -t jessie-backports \
+ && apt-get update && apt-get install --no-install-recommends -y letsencrypt -t jessie-backports \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /etc/letsencrypt/live/${THINX_HOSTNAME} \
@@ -41,8 +41,8 @@ RUN echo Installing as hostname: ${THINX_HOSTNAME} && echo With Letsencrypt owne
 RUN ["/bin/bash", "-c", "debconf-set-selections <<< \"postfix postfix/mailname string ${THINX_HOSTNAME}\" \
 && debconf-set-selections <<< \"postfix postfix/main_mailer_type string 'Internet Site'\""]
 
-RUN apt-get update && apt-get -y install software-properties-common apt-utils \
- && apt-get install -y curl\
+RUN apt-get update && apt-get -y --no-install-recommends  install software-properties-common apt-utils \
+ && apt-get install -y curl \
  git \
  make \
  mailutils \
@@ -58,7 +58,7 @@ RUN apt-get update && apt-get -y install software-properties-common apt-utils \
  wget \
  unzip
 
-RUN apt-get install -y --force-yes \
+RUN apt-get install -y --no-install-recommends --force-yes \
      build-essential \
      erlang-dev \
      erlang-manpages \
@@ -113,7 +113,7 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
  && node -v \
  && npm install .
 
-RUN apt-get install cppcheck
+RUN apt-get install -y --no-install-recommends cppcheck
 RUN npm install eslint
 RUN pip install pylama
 
