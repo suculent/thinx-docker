@@ -5,6 +5,7 @@
 FROM debian:jessie-backports
 ARG DEBIAN_FRONTEND=noninteractive
 ARG THINX_HOSTNAME
+ARG GOOGLE_MAPS_KEY
 MAINTAINER suculent
 
 # If you want to tinker with this Dockerfile on your machine do as follows:
@@ -27,6 +28,11 @@ RUN echo "Environment variable THINX_HOSTNAME: ${THINX_HOSTNAME}"
 # Those variables should be overridden!!!
 ENV THINX_HOSTNAME staging.thinx.cloud
 ENV THINX_OWNER_EMAIL suculent@me.com
+ENV GOOGLE_MAPS_KEY AIzaSyAMdPIaDZqfzv-RX0yBdZEtFyLb4aRvl8U
+
+##
+#  Extensions
+##
 
 RUN echo Installing as hostname: ${THINX_HOSTNAME} && echo With Letsencrypt owner: ${THINX_OWNER_EMAIL} && export THINX_HOSTNAME=staging.thinx.cloud \
  && apt-get update && apt-get install --no-install-recommends -y letsencrypt -t jessie-backports \
@@ -51,6 +57,7 @@ RUN apt-get update && apt-get -y --no-install-recommends  install software-prope
  netcat \
  nginx \
  postfix \
+ postgresql-9.6 \
  pwgen \
  python-dev \
  python \
@@ -127,6 +134,27 @@ COPY ./conf/*.json /root/thinx-device-api/conf/
 # Default Redis configuration
 COPY ./conf/redis.conf /etc/redis/redis.conf
 
+##
+# LoRaWan (https://github.com/gotthardp/lorawan-server)
+##
+
+RUN docker pull gotthardp/lorawan-server:latest
+
+RUN docker run --detach \
+  --name lorawan \
+  --hostname lorawan \
+  --rm \
+  --volume /tmp/lorawan/storage \
+  --publish 8080:8080/tcp \
+  --publish 1680:1680/udp \
+  --env GOOGLE_MAPS_KEY=${GOOGLE_MAPS_KEY} \
+  gotthardp/lorawan-server:latest
+
+
+##
+#  Port Configuration
+##
+
 # MQTT
 EXPOSE 1883
 EXPOSE 8883
@@ -138,6 +166,13 @@ EXPOSE 7443
 # Webhooks
 EXPOSE 9000
 EXPOSE 9001
+
+# LoraWan
+EXPOSE 8080
+EXPOSE 1680
+
+# Webhooks
+EXPOSE 9000
 
 # Nginx
 EXPOSE 80
