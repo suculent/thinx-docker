@@ -3,7 +3,6 @@ FROM gotthardp/lorawan-server:latest
 
 ARG DEBIAN_FRONTEND=noninteractive
 ARG THINX_HOSTNAME
-ARG GOOGLE_MAPS_KEY
 MAINTAINER suculent
 
 # If you want to tinker with this Dockerfile on your machine do as follows:
@@ -33,9 +32,6 @@ ENV THINX_HOSTNAME staging.thinx.cloud
 
 # Add your e-mail to take control of SSL certificate.
 ENV THINX_OWNER_EMAIL suculent@me.com
-
-# Create your own one instead.
-ENV GOOGLE_MAPS_KEY AIzaSyAMdPIaDZqfzv-RX0yBdZEtFyLb4aRvl8U
 
 ##
 #  Security
@@ -126,25 +122,6 @@ RUN curl -sL https://deb.nodesource.com/setup_9.x | bash - \
  && npm install forever -g \
  && npm install .
 
- ##
- # LoRaWan (https://github.com/gotthardp/lorawan-server)
- ##
-
- RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
-  && add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
-  && apt-get update && apt-cache policy docker-ce \
-  && apt-get install -y docker-ce \
-  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
- RUN docker run -v /var/run/docker.sock:/var/run/docker.sock --detach \
-   --name lorawan \
-   --hostname lorawan.thinx.cloud \
-   --rm \
-   --volume /tmp/lorawan/storage \
-   --publish 8080:8080/tcp \
-   --publish 1680:1680/udp \
-   --env GOOGLE_MAPS_KEY=${GOOGLE_MAPS_KEY} \
-   gotthardp/lorawan-server:latest
 
 ##
 # Linters
