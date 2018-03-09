@@ -2,7 +2,8 @@
 #FROM scratch
 #ADD ubuntu-xenial-core-cloudimg-amd64-root.tar.gz /
 
-FROM debian:jessie-backports
+#FROM debian:jessie-backports
+FROM ubuntu:16.04
 ARG DEBIAN_FRONTEND=noninteractive
 ARG THINX_HOSTNAME
 ARG GOOGLE_MAPS_KEY
@@ -35,7 +36,7 @@ ENV GOOGLE_MAPS_KEY AIzaSyAMdPIaDZqfzv-RX0yBdZEtFyLb4aRvl8U
 ##
 
 RUN echo Installing as hostname: ${THINX_HOSTNAME} && echo With Letsencrypt owner: ${THINX_OWNER_EMAIL} && export THINX_HOSTNAME=staging.thinx.cloud \
- && apt-get update && apt-get install --no-install-recommends -y letsencrypt -t jessie-backports \
+ && apt-get update && apt-get install --no-install-recommends -y letsencrypt -t xenial \
  && apt-get clean \
  && rm -rf /var/lib/apt/lists/* \
  && mkdir -p /etc/letsencrypt/live/${THINX_HOSTNAME} \
@@ -57,7 +58,6 @@ RUN apt-get update && apt-get -y --no-install-recommends  install software-prope
  netcat \
  nginx \
  postfix \
- postgresql-9.6 \
  pwgen \
  python-dev \
  python \
@@ -79,33 +79,19 @@ RUN apt-get install -y --no-install-recommends --force-yes \
      libcurl4-gnutls-dev \
      libtool && \
      cd /tmp && \
-     wget https://www-eu.apache.org/dist/couchdb/source/1.6.1/apache-couchdb-1.6.1.tar.gz && \
-     tar xzvf apache-couchdb-1.6.1.tar.gz && \
-     cd apache-couchdb-1.6.1 && \
+     wget https://www-eu.apache.org/dist/couchdb/source/2.1.1/apache-couchdb-2.1.1.tar.gz && \
+     tar xzvf apache-couchdb-2.1.1.tar.gz && \
+     cd apache-couchdb-2.1.1 && \
      ./configure && \
      make && \
      make install && \
-     sed -e 's/^bind_address = .*$/bind_address = 0.0.0.0/' -i /usr/local/etc/couchdb/default.ini && \
-     sed -e 's/^database_dir = .*$/database_dir = \/data/' -i /usr/local/etc/couchdb/default.ini && \
-     sed -e 's/^view_index_dir = .*$/view_index_dir = \/data/' -i /usr/local/etc/couchdb/default.ini && \
+     cd rel && \
+     ls -la && \
+     cp -r couch* /usr/local/lib && \
+     # sed -e 's/^bind_address = .*$/bind_address = 0.0.0.0/' -i /usr/local/etc/couchdb/default.ini && \
+     # sed -e 's/^database_dir = .*$/database_dir = \/data/' -i /usr/local/etc/couchdb/default.ini && \
+     # sed -e 's/^view_index_dir = .*$/view_index_dir = \/data/' -i /usr/local/etc/couchdb/default.ini && \
      apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-RUN cat > $(couchdb -c | grep "local.ini") <<EOL
-[cors]
-credentials = true
-
-[compactions]
-_default = [{db_fragmentation, "70%"}, {view_fragmentation, "60%"}]
-;_default = [{db_fragmentation, "70%"}, {view_fragmentation, "60%"}, {from, "23:00"}, {to, "04:00"}]
-
-[compaction_daemon]
-check_interval = 300
-min_file_size = 131072
-
-[view_compaction]
-keyvalue_buffer_size = 2097152
-EOL
-
 
 # Recently added corrent installation of nodejs 8.x
 RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
@@ -121,8 +107,8 @@ RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
  && npm install .
 
 RUN apt-get install -y --no-install-recommends cppcheck
-RUN npm install eslint
-RUN pip install pylama
+RUN cd /root/thinx-device-api && npm install eslint -g
+RUN apt-get install -y python-pip && pip install pylama
 
 ADD scripts /scripts
 RUN chmod +x /scripts/*.sh
@@ -137,6 +123,11 @@ COPY ./conf/redis.conf /etc/redis/redis.conf
 ##
 # LoRaWan (https://github.com/gotthardp/lorawan-server)
 ##
+
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
+ && add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+ && apt-get update && apt-cache policy docker-ce \
+ && apt-get install -y docker-ce
 
 RUN docker pull gotthardp/lorawan-server:latest
 
