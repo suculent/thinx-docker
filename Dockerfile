@@ -1,4 +1,6 @@
 FROM ubuntu:16.04
+FROM gotthardp/lorawan-server:latest
+
 ARG DEBIAN_FRONTEND=noninteractive
 ARG THINX_HOSTNAME
 ARG GOOGLE_MAPS_KEY
@@ -21,30 +23,53 @@ MAINTAINER suculent
 
 RUN echo "Environment variable THINX_HOSTNAME: ${THINX_HOSTNAME}"
 
-# Those variables should be overridden! Please do not re-use this sample maps key neither in development.
-ENV THINX_HOSTNAME staging.thinx.cloud # Enter FQDN you own, should have public IP
-ENV THINX_OWNER_EMAIL suculent@me.com # Add your e-mail to take control of SSL certificate.
-ENV GOOGLE_MAPS_KEY AIzaSyAMdPIaDZqfzv-RX0yBdZEtFyLb4aRvl8U # Create your own one instead.
+#
+# Following variables MUST be overridden! Please do not re-use this sample maps key neither in development.
+# The valid key here is here in order to tests run.
+#
+
+# Enter FQDN you own, should have public IP
+ENV THINX_HOSTNAME staging.thinx.cloud
+
+# Add your e-mail to take control of SSL certificate.
+ENV THINX_OWNER_EMAIL suculent@me.com
+
+# Create your own one instead.
+ENV GOOGLE_MAPS_KEY AIzaSyAMdPIaDZqfzv-RX0yBdZEtFyLb4aRvl8U
 
 ##
-#  Extensions
+#  Security
 ##
 
-RUN echo Installing as hostname: ${THINX_HOSTNAME} && echo With Letsencrypt owner: ${THINX_OWNER_EMAIL} && export THINX_HOSTNAME=staging.thinx.cloud \
- && apt-get update && apt-get install --no-install-recommends -y letsencrypt -t xenial \
- && apt-get clean \
- && rm -rf /var/lib/apt/lists/* \
- && mkdir -p /etc/letsencrypt/live/${THINX_HOSTNAME} \
+RUN echo Installing as hostname: ${THINX_HOSTNAME} && echo With Letsencrypt owner: ${THINX_OWNER_EMAIL} && export THINX_HOSTNAME=staging.thinx.cloud
+
+# RUN mkdir -p /var/cache/apt/archives/partial \
+#  && touch /var/cache/apt/archives/lock \
+# && chmod 640 /var/cache/apt/archives/lock \
+#  && apt-get install --no-install-recommends -y software-properties-common python-software-properties \
+#  && add-apt-repository ppa:certbot/certbot \
+#  && apt-get update && apt-get install --no-install-recommends -y python-certbot-nginx
+
+RUN mkdir -p /etc/letsencrypt/live/${THINX_HOSTNAME} \
  && openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
     -keyout /etc/letsencrypt/live/${THINX_HOSTNAME}/privkey.pem \
     -out /etc/letsencrypt/live/${THINX_HOSTNAME}/fullchain.pem \
     -subj /CN=${THINX_HOSTNAME}
 
-RUN ["/bin/bash", "-c", "debconf-set-selections <<< \"postfix postfix/mailname string ${THINX_HOSTNAME}\" \
-&& debconf-set-selections <<< \"postfix postfix/main_mailer_type string 'Internet Site'\""]
+RUN mkdir -p /var/cache/debconf \
+ && touch /var/cache/debconf/config.dat
 
-RUN apt-get update && apt-get -y --no-install-recommends  install software-properties-common apt-utils \
- && apt-get install -y curl \
+#RUN debconf-set-selections <<< "postfix postfix/mailname string ${THINX_HOSTNAME}" \
+# && debconf-set-selections <<< "postfix postfix/main_mailer_type string 'Internet Site'"
+
+##
+#  Core
+##
+
+RUN apt-get update && apt-get -y --no-install-recommends install \
+ software-properties-common \
+ apt-utils \
+ cppcheck \
  git \
  make \
  mailutils \
@@ -56,6 +81,7 @@ RUN apt-get update && apt-get -y --no-install-recommends  install software-prope
  pwgen \
  python-dev \
  python \
+ python-pip \
  redis-server \
  wget \
  unzip
@@ -82,11 +108,12 @@ RUN apt-get install -y --no-install-recommends --force-yes \
      make install && \
      cd rel && \
      ls -la && \
-     cp -r couch* /usr/local/lib && \
+     cp -r couch* /usr/local/lib
+
+     # This seems to be deprecated since couchdb 2.x
      # sed -e 's/^bind_address = .*$/bind_address = 0.0.0.0/' -i /usr/local/etc/couchdb/default.ini && \
      # sed -e 's/^database_dir = .*$/database_dir = \/data/' -i /usr/local/etc/couchdb/default.ini && \
-     # sed -e 's/^view_index_dir = .*$/view_index_dir = \/data/' -i /usr/local/etc/couchdb/default.ini && \
-     apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+     # sed -e 's/^view_index_dir = .*$/view_index_dir = \/data/' -i /usr/local/etc/couchdb/default.ini
 
 RUN curl -sL https://deb.nodesource.com/setup_9.x | bash - \
  && apt-get install -y nodejs \
@@ -98,9 +125,36 @@ RUN curl -sL https://deb.nodesource.com/setup_9.x | bash - \
  && npm install forever -g \
  && npm install .
 
-RUN apt-get install -y --no-install-recommends cppcheck
+ ##
+ # LoRaWan (https://github.com/gotthardp/lorawan-server)
+ ##
+
+ RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
+  && add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
+  && apt-get update && apt-cache policy docker-ce \
+  && apt-get install -y docker-ce \
+  && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+ RUN docker run -v /var/run/docker.sock:/var/run/docker.sock --detach \
+   --name lorawan \
+   --hostname lorawan.thinx.cloud \
+   --rm \
+   --volume /tmp/lorawan/storage \
+   --publish 8080:8080/tcp \
+   --publish 1680:1680/udp \
+   --env GOOGLE_MAPS_KEY=${GOOGLE_MAPS_KEY} \
+   gotthardp/lorawan-server:latest
+
+##
+# Linters
+##
+
 RUN cd /root/thinx-device-api && npm install eslint -g
-RUN apt-get install -y python-pip && pip install pylama
+RUN pip install pylama
+
+##
+# Scripts and configs
+##
 
 ADD scripts /scripts
 RUN chmod +x /scripts/*.sh
@@ -111,28 +165,6 @@ COPY ./conf/*.json /root/thinx-device-api/conf/
 
 # Default Redis configuration
 COPY ./conf/redis.conf /etc/redis/redis.conf
-
-##
-# LoRaWan (https://github.com/gotthardp/lorawan-server)
-##
-
-RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add - \
- && add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" \
- && apt-get update && apt-cache policy docker-ce \
- && apt-get install -y docker-ce
-
-RUN docker pull gotthardp/lorawan-server:latest
-
-RUN docker run --detach \
-  --name lorawan \
-  --hostname lorawan \
-  --rm \
-  --volume /tmp/lorawan/storage \
-  --publish 8080:8080/tcp \
-  --publish 1680:1680/udp \
-  --env GOOGLE_MAPS_KEY=${GOOGLE_MAPS_KEY} \
-  gotthardp/lorawan-server:latest
-
 
 ##
 #  Port Configuration
