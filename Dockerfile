@@ -70,6 +70,7 @@ RUN apt-get update && apt-get -y --no-install-recommends install \
  software-properties-common \
  apt-utils \
  cppcheck \
+ curl \
  git \
  make \
  mailutils \
