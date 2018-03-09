@@ -1,8 +1,3 @@
-
-#FROM scratch
-#ADD ubuntu-xenial-core-cloudimg-amd64-root.tar.gz /
-
-#FROM debian:jessie-backports
 FROM ubuntu:16.04
 ARG DEBIAN_FRONTEND=noninteractive
 ARG THINX_HOSTNAME
@@ -26,10 +21,10 @@ MAINTAINER suculent
 
 RUN echo "Environment variable THINX_HOSTNAME: ${THINX_HOSTNAME}"
 
-# Those variables should be overridden!!!
-ENV THINX_HOSTNAME staging.thinx.cloud
-ENV THINX_OWNER_EMAIL suculent@me.com
-ENV GOOGLE_MAPS_KEY AIzaSyAMdPIaDZqfzv-RX0yBdZEtFyLb4aRvl8U
+# Those variables should be overridden! Please do not re-use this sample maps key neither in development.
+ENV THINX_HOSTNAME staging.thinx.cloud # Enter FQDN you own, should have public IP
+ENV THINX_OWNER_EMAIL suculent@me.com # Add your e-mail to take control of SSL certificate.
+ENV GOOGLE_MAPS_KEY AIzaSyAMdPIaDZqfzv-RX0yBdZEtFyLb4aRvl8U # Create your own one instead.
 
 ##
 #  Extensions
@@ -93,17 +88,14 @@ RUN apt-get install -y --no-install-recommends --force-yes \
      # sed -e 's/^view_index_dir = .*$/view_index_dir = \/data/' -i /usr/local/etc/couchdb/default.ini && \
      apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Recently added corrent installation of nodejs 8.x
-RUN curl -sL https://deb.nodesource.com/setup_8.x | bash - \
+RUN curl -sL https://deb.nodesource.com/setup_9.x | bash - \
  && apt-get install -y nodejs \
  && curl -k -O -L https://npmjs.org/install.sh \
- && if [[ ! -f /usr/bin/node ]]; then ln -s /usr/bin/nodejs /usr/bin/node; fi \
  && mkdir -p /root/thinx-device-api \
  && cd /root \
  && git clone https://github.com/suculent/thinx-device-api.git \
  && cd ./thinx-device-api \
  && npm install forever -g \
- && node -v \
  && npm install .
 
 RUN apt-get install -y --no-install-recommends cppcheck
